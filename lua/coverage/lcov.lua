@@ -1,34 +1,57 @@
+local M = {}
+
+local Path = require("plenary.path")
+local common = require("coverage.languages.common")
+local config = require("coverage.config")
+local report = require("coverage.report")
+local signs = require("coverage.signs")
+local util = require("coverage.util")
+local watch = require("coverage.watch")
 
 --- Loads a coverage report from an lcov file but does not place signs.
 --- @param file string the path to the lcov file
 --- @param place boolean true to immediately place signs
-M.load = function(file, place)
-    -- TODO have a config value for file
-    -- local lang_config = config.opts.lang[ftype]
-    -- if lang_config == nil then
-    --     lang_config = config.opts.lang[lang.config_alias]
-    -- end
-    -- if lang_config ~= nil and lang_config.coverage_file ~= nil then
-    --     watch.start(lang_config.coverage_file, load_lang)
-    -- end
-    signs.clear()
-    parse_lcov_file(file, function(result)
-        -- TODO wat this
-        -- if config.opts.load_coverage_cb ~= nil then
-        --     vim.schedule(function()
-        --         config.opts.load_coverage_cb(ftype)
-        --     end)
-        -- end
-        report.cache(result, ftype)
-        local sign_list = lang.sign_list(result)
+M.load_lcov = function(file, place)
+    if file == nil then
+        file = config.opts.lcov_file
+    end
+    if file == nil then
+        vim.notify("A path to the lcov file was not supplied.", vim.log.levels.INFO)
+        return
+    end
+    local p = Path:new(file)
+    if not p:exists() then
+        vim.notify("No coverage file exists.", vim.log.levels.INFO)
+        return
+    end
+
+    local load_lcov = function()
+        if config.opts.load_coverage_cb ~= nil then
+            vim.schedule(function()
+                config.opts.load_coverage_cb("lcov")
+            end)
+        end
+
+        local result = util.lcov_to_table(p)
+
+        -- Since we don't know the actual language, use the default common
+        -- summary and sign_list.
+        report.cache(result, "common")
+        local sign_list = common.sign_list(result)
         if place or signs.is_enabled() then
             signs.place(sign_list)
         else
             signs.cache(sign_list)
         end
-    end)
+    end
+
+    watch.start(file, load_lcov)
+
+    -- When signs were enabled, calling load_lcov would disable them.
+    -- That didn't seem like good UX to me, so I disabled this.
+    -- signs.clear()
+    load_lcov()
 end
 
-local parse_lcov_file = function(file, callback)
-    vim.notify("heyyy lmao")
-end
+
+return M

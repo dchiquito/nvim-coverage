@@ -21,7 +21,7 @@ M.setup = function(user_opts)
         vim.cmd([[
     command! Coverage lua require('coverage').load(true)
     command! CoverageLoad lua require('coverage').load()
-    command! CoverageLoadLcov lua require('coverage').load_lcov()
+    command! -nargs=? CoverageLoadLcov lua require('coverage').load_lcov(<f-args>)
     command! CoverageShow lua require('coverage').show()
     command! CoverageHide lua require('coverage').hide()
     command! CoverageToggle lua require('coverage').toggle()
@@ -72,7 +72,7 @@ M.load = function(place)
 end
 
 -- Load an lcov file
-M.load_lcov = lcov.load
+M.load_lcov = lcov.load_lcov
 
 -- Shows signs, if loaded.
 M.show = signs.show
